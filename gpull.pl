@@ -13,8 +13,8 @@ my $install;
 
 GetOptions(
     'dir|d=s' => \$root,
-    'install-pm|i' => \$install
-) or die 'Usage: $0 --dir /path/to/src --install';
+    'install|i' => \$install
+) or die "Usage: $0 --dir \'/path/to/src\' --install";
 
 my $pwd = dir($root);
 
@@ -26,11 +26,44 @@ $subdirs->grep(
     sub {
         my $dir = $_;
         p $dir->basename;
-        system("cd $dir; git pull;");
-        if ( $install ) {
+
+        if ( git_exist($dir) ) {
+            system("cd $dir; git pull;");
+        }
+
+        if ( $install && cpan_exist($dir) ) {
             system("cd $dir; cpm install;");
         }
         print "###################################\n";
     }
 );
 
+sub git_exist {
+    my $dir = shift;
+    my $exist;
+    my $children = c $dir->children();
+    $children->grep(
+        sub { $_->basename =~ /^.git$/; }
+    )->each(
+        sub {
+            $exist = 1;
+        }
+    );
+
+    return $exist;
+}
+
+sub cpan_exist {
+    my $dir = shift;
+    my $exist;
+    my $children = c $dir->children();
+    $children->grep(
+        sub { $_->basename =~ /^cpanfile$/; }
+    )->each(
+        sub {
+            $exist = 1;
+        }
+    );
+
+    return $exist;
+}
